@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stopwatch App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .timers-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .stopwatch-card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            min-height: 400px;
+        }
+
+        .timer-title {
+            width: 80%;
+            padding: 8px;
+            margin: 10px 0;
+            font-size: 18px;
+            text-align: center;
+            border: none;
+            border-bottom: 2px solid #eee;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .timer-title:focus {
+            border-bottom-color: #6c5ce7;
+        }
+
+        .timer-title::placeholder {
+            color: #b2bec3;
+        }
+
+        .timer-circle {
+            width: 200px;
+            height: 200px;
+            border: 4px solid #6c5ce7;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .time-display {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2d3436;
+        }
+
+        .milliseconds {
+            font-size: 20px;
+            color: #636e72;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .global-controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .start-btn {
+            background-color: #6c5ce7;
+            color: white;
+        }
+
+        .stop-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .lap-btn {
+            background-color: #00b894;
+            color: white;
+        }
+
+        .reset-btn {
+            background-color: #dfe6e9;
+            color: #2d3436;
+        }
+
+        .add-stopwatch-btn {
+            background-color: #00b894;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .add-stopwatch-btn:hover {
+            opacity: 0.9;
+            transform: scale(1.05);
+        }
+
+        .remove-stopwatch {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #ff7675;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .remove-stopwatch:hover {
+            background-color: #d63031;
+        }
+
+        button:hover {
+            opacity: 0.9;
+            transform: scale(1.05);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .laps-container {
+            margin-top: 15px;
+            width: 100%;
+            max-height: 150px;
+            overflow-y: auto;
+            padding: 0 10px;
+        }
+
+        .lap-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+            color: #636e72;
+        }
+
+        .lap-number {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="global-controls">
+        <button class="add-stopwatch-btn">Add Stopwatch</button>
+    </div>
+    <div class="timers-container">
+        <div class="stopwatch-card">
+            <button class="remove-stopwatch">×</button>
+            <input type="text" class="timer-title" placeholder="Enter timer name...">
+            <div class="timer-circle">
+                <div class="time-display">00:00:00<span class="milliseconds">.000</span></div>
+            </div>
+            <div class="controls">
+                <button class="start-btn">Start</button>
+                <button class="stop-btn" disabled>Stop</button>
+                <button class="lap-btn" disabled>Lap</button>
+                <button class="reset-btn" disabled>Reset</button>
+            </div>
+            <div class="laps-container"></div>
+        </div>
+    </div>
+
+    <script>
+        // Add color utilities
+        const colors = [
+            { main: '#6c5ce7', light: '#7d6ef1' },  // Purple
+            { main: '#00b894', light: '#00d1a8' },  // Green
+            { main: '#e17055', light: '#f18564' },  // Orange
+            { main: '#0984e3', light: '#1a95f4' },  // Blue
+            { main: '#e84393', light: '#f154a4' },  // Pink
+            { main: '#00cec9', light: '#00e0db' },  // Cyan
+            { main: '#6c5ce7', light: '#7d6ef1' },  // Purple
+            { main: '#fdcb6e', light: '#ffd87e' }   // Yellow
+        ];
+
+        function getRandomColor() {
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        class Stopwatch {
+            constructor(container, savedState = null) {
+                this.container = container;
+                this.display = container.querySelector('.time-display');
+                this.startBtn = container.querySelector('.start-btn');
+                this.stopBtn = container.querySelector('.stop-btn');
+                this.lapBtn = container.querySelector('.lap-btn');
+                this.resetBtn = container.querySelector('.reset-btn');
+                this.lapsContainer = container.querySelector('.laps-container');
+                this.titleInput = container.querySelector('.timer-title');
+                
+                this.startTime = 0;
+                this.elapsedTime = 0;
+                this.interval = null;
+                this.saveInterval = null;
+                this.isRunning = false;
+                this.lapCount = 0;
+                this.lastLapTime = 0;
+                this.id = savedState?.id || Date.now().toString();
+                this.color = savedState?.color || getRandomColor();
+
+                // Restore saved state if available
+                if (savedState) {
+                    this.restoreState(savedState);
+                } else {
+                    this.setRandomColor();
+                }
+
+                this.setupEventListeners();
+                this.saveState();
+            }
+
+            restoreState(state) {
+                this.titleInput.value = state.title || '';
+                this.color = state.color;
+                this.setColor(this.color);
+                this.elapsedTime = state.elapsedTime || 0;
+                
+                // Update display with saved time
+                if (this.elapsedTime > 0) {
+                    this.display.innerHTML = this.formatTime(this.elapsedTime);
+                }
+                
+                if (state.laps) {
+                    state.laps.forEach(lap => {
+                        const lapItem = document.createElement('div');
+                        lapItem.className = 'lap-item';
+                        lapItem.innerHTML = lap;
+                        this.lapsContainer.appendChild(lapItem);
+                    });
+                }
+
+                // If it was running when saved, restart it
+                if (state.isRunning) {
+                    this.start();
+                }
+            }
+
+            saveState() {
+                const state = {
+                    id: this.id,
+                    title: this.titleInput.value,
+                    color: this.color,
+                    elapsedTime: this.elapsedTime,
+                    isRunning: this.isRunning,
+                    laps: Array.from(this.lapsContainer.children).map(lap => lap.outerHTML)
+                };
+
+                let savedStopwatches = JSON.parse(localStorage.getItem('stopwatches') || '{}');
+                savedStopwatches[this.id] = state;
+                localStorage.setItem('stopwatches', JSON.stringify(savedStopwatches));
+            }
+
+            setupEventListeners() {
+                this.startBtn.addEventListener('click', () => this.start());
+                this.stopBtn.addEventListener('click', () => this.stop());
+                this.lapBtn.addEventListener('click', () => this.lap());
+                this.resetBtn.addEventListener('click', () => this.reset());
+                
+                this.titleInput.addEventListener('input', () => this.saveState());
+                
+                const removeBtn = this.container.querySelector('.remove-stopwatch');
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', () => {
+                        if (!this.isRunning || confirm('Stopwatch is running. Are you sure you want to remove it?')) {
+                            // Remove from localStorage
+                            let savedStopwatches = JSON.parse(localStorage.getItem('stopwatches') || '{}');
+                            delete savedStopwatches[this.id];
+                            localStorage.setItem('stopwatches', JSON.stringify(savedStopwatches));
+                            
+                            this.stop();
+                            this.container.remove();
+                        }
+                    });
+                }
+            }
+
+            start() {
+                if (!this.isRunning) {
+                    this.isRunning = true;
+                    this.startTime = Date.now() - this.elapsedTime;
+                    this.interval = setInterval(() => this.updateDisplay(), 10);
+                    
+                    // Set up auto-save every minute
+                    this.saveInterval = setInterval(() => {
+                        this.saveState();
+                    }, 60000); // 60000ms = 1 minute
+                    
+                    this.startBtn.disabled = true;
+                    this.stopBtn.disabled = false;
+                    this.lapBtn.disabled = false;
+                    this.resetBtn.disabled = true;
+                }
+            }
+
+            stop() {
+                if (this.isRunning) {
+                    this.isRunning = false;
+                    clearInterval(this.interval);
+                    clearInterval(this.saveInterval);
+                    this.saveState(); // Save state when stopping
+                    
+                    this.startBtn.disabled = false;
+                    this.stopBtn.disabled = true;
+                    this.lapBtn.disabled = true;
+                    this.resetBtn.disabled = false;
+                }
+            }
+
+            reset() {
+                this.stop();
+                this.elapsedTime = 0;
+                this.startTime = 0;
+                this.lapCount = 0;
+                this.lastLapTime = 0;
+                this.display.innerHTML = '00:00:00<span class="milliseconds">.000</span>';
+                this.lapsContainer.innerHTML = '';
+                this.resetBtn.disabled = true;
+                this.startBtn.disabled = false;
+                this.stopBtn.disabled = true;
+                this.lapBtn.disabled = true;
+                this.saveState(); // Save state after reset
+            }
+
+            lap() {
+                if (this.isRunning) {
+                    this.lapCount++;
+                    const currentTime = Date.now() - this.startTime;
+                    const lapTime = currentTime - this.lastLapTime;
+                    this.lastLapTime = currentTime;
+
+                    const lapItem = document.createElement('div');
+                    lapItem.className = 'lap-item';
+                    lapItem.innerHTML = `
+                        <span class="lap-number">Lap ${this.lapCount}</span>
+                        <span class="lap-time">${this.formatTime(lapTime)}</span>
+                    `;
+                    this.lapsContainer.insertBefore(lapItem, this.lapsContainer.firstChild);
+                    this.saveState();
+                }
+            }
+
+            updateDisplay() {
+                const currentTime = Date.now() - this.startTime;
+                this.elapsedTime = currentTime;
+                this.display.innerHTML = this.formatTime(currentTime);
+            }
+
+            formatTime(ms) {
+                const hours = Math.floor(ms / 3600000);
+                const minutes = Math.floor((ms % 3600000) / 60000);
+                const seconds = Math.floor((ms % 60000) / 1000);
+                const milliseconds = Math.floor(ms % 1000);
+
+                return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}<span class="milliseconds">.${String(milliseconds).padStart(3, '0')}</span>`;
+            }
+
+            setColor(color) {
+                const circle = this.container.querySelector('.timer-circle');
+                const buttons = this.container.querySelectorAll('button:not(.remove-stopwatch)');
+                
+                circle.style.borderColor = color.main;
+                buttons.forEach(button => {
+                    if (button.classList.contains('start-btn')) {
+                        button.style.backgroundColor = color.main;
+                    } else if (button.classList.contains('stop-btn')) {
+                        button.style.backgroundColor = '#e74c3c';
+                    } else if (button.classList.contains('lap-btn')) {
+                        button.style.backgroundColor = color.light;
+                    }
+                });
+                
+                this.titleInput.style.borderBottomColor = color.main;
+            }
+
+            setRandomColor() {
+                this.color = getRandomColor();
+                this.setColor(this.color);
+            }
+        }
+
+        // Function to add new stopwatch
+        function addNewStopwatch() {
+            const container = document.querySelector('.timers-container');
+            const stopwatchCount = container.children.length;
+            
+            // Limit the maximum number of stopwatches to 8
+            if (stopwatchCount >= 8) {
+                alert('Maximum number of stopwatches (8) reached!');
+                return;
+            }
+
+            // Create template if it doesn't exist
+            let template = document.querySelector('.stopwatch-card');
+            if (!template) {
+                template = document.createElement('div');
+                template.className = 'stopwatch-card';
+                template.innerHTML = `
+                    <button class="remove-stopwatch">×</button>
+                    <input type="text" class="timer-title" placeholder="Enter timer name...">
+                    <div class="timer-circle">
+                        <div class="time-display">00:00:00<span class="milliseconds">.000</span></div>
+                    </div>
+                    <div class="controls">
+                        <button class="start-btn">Start</button>
+                        <button class="stop-btn" disabled>Stop</button>
+                        <button class="lap-btn" disabled>Lap</button>
+                        <button class="reset-btn" disabled>Reset</button>
+                    </div>
+                    <div class="laps-container"></div>
+                `;
+            }
+            
+            const newStopwatchCard = template.cloneNode(true);
+            
+            // Reset the display
+            const timeDisplay = newStopwatchCard.querySelector('.time-display');
+            timeDisplay.innerHTML = '00:00:00<span class="milliseconds">.000</span>';
+            
+            // Set default title
+            const titleInput = newStopwatchCard.querySelector('.timer-title');
+            titleInput.value = `Stopwatch ${stopwatchCount + 1}`;
+            
+            // Reset laps container
+            const lapsContainer = newStopwatchCard.querySelector('.laps-container');
+            lapsContainer.innerHTML = '';
+            
+            // Reset button states
+            const buttons = newStopwatchCard.querySelectorAll('button');
+            buttons.forEach(button => {
+                if (button.classList.contains('start-btn')) {
+                    button.disabled = false;
+                } else if (!button.classList.contains('remove-stopwatch')) {
+                    button.disabled = true;
+                }
+            });
+            
+            container.appendChild(newStopwatchCard);
+            const stopwatch = new Stopwatch(newStopwatchCard);
+            stopwatch.saveState(); // Explicitly save the new stopwatch state
+            return stopwatch;
+        }
+
+        // Load saved stopwatches
+        function loadSavedStopwatches() {
+            const container = document.querySelector('.timers-container');
+            container.innerHTML = ''; // Clear default stopwatch
+            
+            const savedStopwatches = JSON.parse(localStorage.getItem('stopwatches') || '{}');
+            
+            // If no saved stopwatches, create default ones
+            if (Object.keys(savedStopwatches).length === 0) {
+                for (let i = 0; i < 4; i++) {
+                    addNewStopwatch();
+                }
+                return;
+            }
+            
+            // Restore saved stopwatches in order of their IDs
+            Object.values(savedStopwatches)
+                .sort((a, b) => parseInt(a.id) - parseInt(b.id))
+                .forEach(savedState => {
+                    // Create template if it doesn't exist
+                    let template = document.querySelector('.stopwatch-card');
+                    if (!template) {
+                        template = document.createElement('div');
+                        template.className = 'stopwatch-card';
+                        template.innerHTML = `
+                            <button class="remove-stopwatch">×</button>
+                            <input type="text" class="timer-title" placeholder="Enter timer name...">
+                            <div class="timer-circle">
+                                <div class="time-display">00:00:00<span class="milliseconds">.000</span></div>
+                            </div>
+                            <div class="controls">
+                                <button class="start-btn">Start</button>
+                                <button class="stop-btn" disabled>Stop</button>
+                                <button class="lap-btn" disabled>Lap</button>
+                                <button class="reset-btn" disabled>Reset</button>
+                            </div>
+                            <div class="laps-container"></div>
+                        `;
+                    }
+                    const stopwatchCard = template.cloneNode(true);
+                    container.appendChild(stopwatchCard);
+                    new Stopwatch(stopwatchCard, savedState);
+                });
+        }
+
+        // Initialize the app
+        document.querySelector('.add-stopwatch-btn').addEventListener('click', addNewStopwatch);
+        loadSavedStopwatches();
+    </script>
+</body>
+</html>
